@@ -97,7 +97,7 @@ body { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; color
 /* Savings breakdown */
 #savingsBreakdown { display: none; }
 #savingsBreakdown h3 { font-size: 11.5px; font-weight: 500; color: #444; margin-bottom: 8px; }
-.savings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.savings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .scard { padding: 10px 14px; border-left: 3px solid #ccc; border-radius: 0; }
 .scard .slabel { font-size: 10px; color: #888; margin-bottom: 4px; }
 .scard .sval { font-size: 15px; font-weight: 600; }
@@ -390,23 +390,19 @@ function render(){
     const totSav=(allCum[curIdx][total]||0)-(allCum[recIdx][total]||0);
     const compSav=totSav-initD;
     const curColor=PALETTE[curIdx%PALETTE.length];
+    const upfront=curC.startRate-recC.startRate;
     bd.style.display="block";
     document.getElementById("savingsBreakdownTitle").innerHTML=
-      `Savings breakdown &mdash; <span style="color:${curColor}">${curC.name}</span> vs. <span style="color:${GREEN}">&#9733; ${recC.name}</span>`;
+      `Savings &mdash; <span style="color:${curColor}">${curC.name}</span> vs. <span style="color:${GREEN}">&#9733; ${recC.name}</span>`;
     document.getElementById("savingsCards").innerHTML=`
-      <div class="scard" style="background:#f7f7f7;border-left-color:${curColor}">
-        <div class="slabel">Day-one rate difference</div>
-        <div class="sval" style="color:${initD>=0?GREEN:'#D85A30'}">${fmt(Math.abs(initD))}</div>
-        <div class="ssub">${fmt(Math.abs(curC.startRate-recC.startRate))}/yr &times; ${total/12} yrs</div>
+      <div class="scard" style="background:${upfront>=0?'#edf7f3':'#fdf0ee'};border-left-color:${upfront>=0?GREEN:'#D85A30'};border-radius:8px">
+        <div class="slabel">Upfront annual savings</div>
+        <div class="sval" style="font-size:22px;font-weight:700;color:${upfront>=0?GREEN:'#D85A30'}">${fmt(Math.abs(upfront))}<span style="font-size:13px;font-weight:400;color:#888"> / yr</span></div>
+        <div class="ssub">${upfront>=0?recC.name+" is cheaper from day one":curC.name+" is cheaper from day one"}</div>
       </div>
-      <div class="scard" style="background:#f7f7f7;border-left-color:${GL}">
-        <div class="slabel">From rate divergence over time</div>
-        <div class="sval" style="color:${compSav>=0?GREEN:'#D85A30'}">${fmt(Math.abs(compSav))}</div>
-        <div class="ssub">As ${curC.name} compounds higher</div>
-      </div>
-      <div class="scard" style="background:${totSav>=0?'#edf7f3':'#fdf0ee'};border-left-color:${totSav>=0?GREEN:'#D85A30'}">
-        <div class="slabel">Total ${total}-month savings</div>
-        <div class="sval" style="font-weight:700;color:${totSav>=0?GREEN:'#D85A30'}">${fmt(Math.abs(totSav))}</div>
+      <div class="scard" style="background:${totSav>=0?'#edf7f3':'#fdf0ee'};border-left-color:${totSav>=0?GREEN:'#D85A30'};border-radius:8px">
+        <div class="slabel">Total savings over ${total} months</div>
+        <div class="sval" style="font-size:22px;font-weight:700;color:${totSav>=0?GREEN:'#D85A30'}">${fmt(Math.abs(totSav))}</div>
         <div class="ssub">${totSav>=0?"Favour &#9733; "+recC.name:"Favour "+curC.name}</div>
       </div>`;
   } else { bd.style.display="none"; }
