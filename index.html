@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Rate Comparison</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; font-size: 13px; color: #1a1a1a; background: #f0f0f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Title bar */
+#titlebar { background: #1a1a1a; color: white; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; -webkit-app-region: drag; }
+#titlebar h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
+#titlebar .actions { display: flex; gap: 8px; -webkit-app-region: no-drag; }
+#titlebar button { font-size: 11.5px; padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: white; cursor: pointer; }
+#titlebar button:hover { background: rgba(255,255,255,0.16); }
+#titlebar button.primary { background: #0F6E56; border-color: #0F6E56; }
+#titlebar button.primary:hover { background: #0a5040; }
+#titlebar .case-name { font-size: 12px; color: rgba(255,255,255,0.5); margin-left: 12px; }
+
+/* Layout */
+#app { display: flex; flex: 1; overflow: hidden; }
+#leftPanel { width: 220px; background: white; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+#rightPanel { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Cases panel */
+#casesHeader { padding: 12px 12px 8px; font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+#casesHeader button { font-size: 11px; padding: 2px 8px; border-radius: 5px; border: 1px solid #ddd; background: white; cursor: pointer; color: #555; }
+#casesHeader button:hover { background: #f5f5f5; }
+#casesList { flex: 1; overflow-y: auto; padding: 6px; }
+.case-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px; border: 1.5px solid transparent; }
+.case-item:hover { background: #f7f7f7; }
+.case-item.active { background: #edf7f3; border-color: #0F6E56; }
+.case-item .ci-name { font-size: 12px; font-weight: 500; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case-item.active .ci-name { color: #0F6E56; }
+.case-item .ci-date { font-size: 10px; color: #aaa; margin-top: 2px; }
+.case-item .ci-del { float: right; font-size: 13px; color: #ccc; background: none; border: none; cursor: pointer; line-height: 1; padding: 0; }
+.case-item .ci-del:hover { color: #e05; }
+#noSaved { font-size: 11px; color: #bbb; text-align: center; padding: 20px 10px; }
+
+/* Settings bar */
+#settingsBar { background: white; border-radius: 10px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; border: 1px solid #e8e8e8; }
+#settingsBar label { font-size: 11.5px; color: #888; white-space: nowrap; }
+#settingsBar select, #settingsBar input[type=number] { font-size: 11.5px; padding: 4px 7px; border: 1px solid #ddd; border-radius: 6px; background: white; }
+#settingsBar input[type=number] { width: 66px; text-align: center; }
+#caseNameInput { font-size: 13px; font-weight: 500; border: none; border-bottom: 2px solid #ddd; outline: none; background: transparent; padding: 2px 4px; min-width: 180px; color: #1a1a1a; }
+#caseNameInput:focus { border-bottom-color: #0F6E56; }
+#recBadge { margin-left: auto; font-size: 11.5px; color: #0F6E56; font-weight: 500; }
+
+/* Carrier area */
+#carrierArea { display: grid; grid-template-columns: 190px 1fr; gap: 12px; align-items: start; }
+#sidebar { background: white; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 3px; border: 1px solid #e8e8e8; }
+.sidebar-label { font-size: 10px; color: #888; font-weight: 600; margin: 4px 6px 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.srow { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 8px; cursor: pointer; border: 1.5px solid transparent; }
+.srow:hover { background: #f7f7f7; }
+.srow.active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.srow .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.srow .star-icon { font-size: 10px; flex-shrink: 0; }
+.srow .name-inp { flex: 1; font-size: 12px; border: none; outline: none; background: transparent; cursor: pointer; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 0; }
+.srow .name-inp.editing { background: #f0f0f0; border-radius: 4px; padding: 1px 4px; cursor: text; outline: 1.5px solid #185FA5; }
+.srow .icon-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: #bbb; padding: 0; line-height: 1; flex-shrink: 0; }
+.srow .icon-btn:hover { color: #555; }
+.add-carrier-btn { margin-top: 4px; padding: 7px 8px; font-size: 12px; border-radius: 8px; border: 1.5px dashed #ccc; background: transparent; color: #888; cursor: pointer; text-align: left; width: 100%; }
+.add-carrier-btn:hover { border-color: #aaa; color: #555; }
+
+/* Config panel */
+#configPanel { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e8e8e8; }
+.config-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.config-name-row { display: flex; align-items: center; gap: 8px; }
+.config-name-inp { font-size: 15px; font-weight: 600; border: none; border-bottom: 2px solid transparent; outline: none; background: transparent; padding: 0 2px; cursor: pointer; min-width: 40px; }
+.config-name-inp.editing { cursor: text; }
+.pencil { font-size: 11px; color: #ccc; cursor: pointer; }
+.pencil:hover { color: #888; }
+.rec-btn { font-size: 11px; padding: 4px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #ddd; background: white; color: #888; white-space: nowrap; }
+.rec-btn:hover { background: #f5f5f5; }
+.rec-btn.active { border-color: #0F6E56; background: #edf7f3; color: #0F6E56; font-weight: 600; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.field label { font-size: 10.5px; color: #888; display: block; margin-bottom: 3px; }
+.field-row { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+.field-row .pfx, .field-row .sfx { padding: 5px 7px; background: #f5f5f5; font-size: 12px; color: #888; flex-shrink: 0; }
+.field-row input { flex: 1; border: none; padding: 5px 7px; font-size: 12px; outline: none; min-width: 0; }
+.field-row input:focus { background: #fafff9; }
+.incs-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.incs-top label { font-size: 11px; color: #888; font-weight: 500; }
+.inc-add-btn { font-size: 11px; border-radius: 5px; padding: 2px 8px; background: none; cursor: pointer; }
+.inc-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.inc-row label { font-size: 11px; color: #888; white-space: nowrap; }
+.inc-row input { border: 1px solid #ddd; border-radius: 5px; padding: 3px 6px; font-size: 12px; outline: none; }
+.inc-rm { font-size: 14px; color: #ccc; border: none; background: none; cursor: pointer; }
+.inc-rm:hover { color: #e05; }
+
+/* Charts */
+#chartsRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chart-card { background: white; border-radius: 10px; padding: 12px; border: 1px solid #e8e8e8; }
+.chart-card h3 { font-size: 11.5px; font-weight: 500; color: #444; margin-bottom: 8px; }
+
+/* Savings breakdown */
+#savingsBreakdown { display: none; }
+#savingsBreakdown h3 { font-size: 11.5px; font-weight: 500; color: #444; margin-bottom: 8px; }
+.savings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.scard { padding: 10px 14px; border-left: 3px solid #ccc; border-radius: 0; }
+.scard .slabel { font-size: 10px; color: #888; margin-bottom: 4px; }
+.scard .sval { font-size: 15px; font-weight: 600; }
+.scard .ssub { font-size: 10px; color: #888; margin-top: 3px; }
+
+/* Table */
+#tableSection h3 { font-size: 11.5px; font-weight: 500; color: #444; margin-bottom: 8px; }
+#tableSection { background: white; border-radius: 10px; padding: 14px; border: 1px solid #e8e8e8; }
+#tableWrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { padding: 7px 10px; font-weight: 500; white-space: nowrap; }
+td { padding: 5px 10px; white-space: nowrap; }
+.note { font-size: 10px; color: #bbb; margin-top: 6px; }
+
+/* Modal */
+#modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+#modal.open { display: flex; }
+#modalBox { background: white; border-radius: 12px; padding: 24px; width: 420px; }
+#modalBox h2 { font-size: 16px; font-weight: 600; margin-bottom:6px; }
+#modalBox p { font-size: 12px; color: #888; margin-bottom: 16px; }
+#modalBox input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 7px; outline: none; margin-bottom: 14px; }
+#modalBox input:focus { border-color: #0F6E56; }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btns button { padding: 7px 16px; font-size: 12px; border-radius: 7px; border: 1px solid #ddd; cursor: pointer; background: white; }
+.modal-btns button.confirm { background: #0F6E56; color: white; border-color: #0F6E56; }
+.modal-btns button:hover { opacity: 0.85; }
+
+@media print {
+  #leftPanel, #titlebar, #settingsBar, #carrierArea { display: none !important; }
+  #rightPanel { padding: 0; overflow: visible; }
+  body { overflow: visible; height: auto; background: white; }
+  #app { overflow: visible; }
+  #chartsRow { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chart-card { border: 1px solid #ddd; page-break-inside: avoid; }
+  #tableSection { page-break-inside: avoid; }
+  #savingsBreakdown { page-break-inside: avoid; }
+  #pdfHeader { display: block !important; }
+}
+#pdfHeader { display: none; padding: 0 0 12px; border-bottom: 2px solid #1a1a1a; margin-bottom: 4px; }
+#pdfHeader h2 { font-size: 17px; font-weight: 600; margin-bottom: 3px; }
+#pdfHeader p { font-size: 11px; color: #888; }
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <h1>&#9733; Premium Rate Comparison</h1>
+    <span class="case-name" id="titleCaseName"></span>
+  </div>
+  <div class="actions">
+    <button onclick="newCase()">New case</button>
+    <button onclick="saveCase()">Save</button>
+    <button onclick="saveCaseAs()">Save as&hellip;</button>
+    <button class="primary" onclick="exportPdf()">Export PDF</button>
+  </div>
+</div>
+
+<div id="app">
+  <div id="leftPanel">
+    <div id="casesHeader">
+      Saved cases
+      <button onclick="loadCasesList()">&#8635;</button>
+    </div>
+    <div id="casesList"><div id="noSaved">No saved cases yet</div></div>
+  </div>
+
+  <div id="rightPanel">
+    <div id="settingsBar">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label>Case name</label>
+        <input type="text" id="caseNameInput" placeholder="Untitled case" value="Untitled case">
+      </div>
+      <div style="width:1px;height:20px;background:#e0e0e0"></div>
+      <label>Start date</label>
+      <select id="startMonth">
+        <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+        <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+        <option value="7" selected>Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+        <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+      </select>
+      <input type="number" id="startYear" value="2026" min="2020" max="2040">
+      <label>Period</label>
+      <select id="period">
+        <option value="12">12 months</option><option value="24">24 months</option>
+        <option value="36">36 months</option><option value="48" selected>48 months</option>
+        <option value="60">60 months</option><option value="72">72 months</option>
+      </select>
+      <span id="recBadge"></span>
+    </div>
+
+    <div id="carrierArea">
+      <div id="sidebar">
+        <div class="sidebar-label">Carriers</div>
+        <div id="sidebarList"></div>
+        <button class="add-carrier-btn" onclick="addCarrier()">+ Add carrier</button>
+      </div>
+      <div id="configPanel"></div>
+    </div>
+
+    <div id="pdfHeader">
+      <h2 id="pdfHeaderTitle">Premium Rate Comparison</h2>
+      <p id="pdfHeaderSub"></p>
+    </div>
+
+    <div id="chartsRow">
+      <div class="chart-card">
+        <h3>Annual premium &mdash; all carriers</h3>
+        <svg id="costChart" style="width:100%;height:auto;display:block"></svg>
+      </div>
+      <div class="chart-card">
+        <h3 id="savingsTitle">Cumulative savings</h3>
+        <svg id="savingsChart" style="width:100%;height:auto;display:block"></svg>
+      </div>
+    </div>
+
+    <div id="savingsBreakdown">
+      <h3 id="savingsBreakdownTitle"></h3>
+      <div class="savings-grid" id="savingsCards"></div>
+    </div>
+
+    <div id="tableSection">
+      <h3>Milestone summary</h3>
+      <div id="tableWrap"><table id="milestoneTable"></table></div>
+      <p class="note" id="milestoneNote"></p>
+    </div>
+  </div>
+</div>
+
+<div id="modal">
+  <div id="modalBox">
+    <h2 id="modalTitle">Save case</h2>
+    <p id="modalDesc">Enter a name for this case.</p>
+    <input type="text" id="modalInput" placeholder="e.g. ABC Corp — Q3 2026">
+    <div class="modal-btns">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="confirm" id="modalConfirm">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PALETTE = ["#185FA5","#1D9E75","#D85A30","#7F77DD","#BA7517","#993556","#0F6E56","#534AB7","#639922","#A32D2D"];
+const GREEN = "#0F6E56", GL = "#1D9E75", GRAY = "#888";
+let nextId = 3;
+let carriers = [
+  {id:1,name:"Current Carrier",startRate:137567,annualIncrease:6,guaranteeMonths:0,cap:0,increases:[]},
+  {id:2,name:"Canada Life",startRate:116620,annualIncrease:0,guaranteeMonths:28,cap:0,increases:[{month:28,pct:15},{month:40,pct:15}]}
+];
+let selId = 1, recId = 2, editId = null, currentFilename = null;
+
+function fmt(n){return "$"+Math.round(n).toLocaleString();}
+function mLabel(m){
+  const sm=+document.getElementById("startMonth").value, sy=+document.getElementById("startYear").value;
+  const t=sm-1+m, y=sy+Math.floor(t/12), mo=t%12;
+  return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][mo]+" '"+String(y).slice(2);
+}
+function calcRates(c,total){
+  const out=[];
+  for(let m=0;m<=total;m++){
+    let r=c.startRate||0;
+    if(c.annualIncrease>0){
+      const yrs=Math.floor(m/12),gYrs=Math.floor((c.guaranteeMonths||0)/12);
+      const eff=Math.max(0,yrs-gYrs);
+      const rate=Math.min(c.annualIncrease/100,c.cap>0?c.cap/100:Infinity);
+      r=(c.startRate||0)*Math.pow(1+rate,eff);
+    }
+    for(const inc of(c.increases||[])){if(m>=inc.month)r*=(1+inc.pct/100);}
+    out.push(r);
+  }
+  return out;
+}
+function calcCum(rates,kms,total){
+  const s=[...kms].sort((a,b)=>a-b);
+  let tot=0;const map={0:0};
+  for(let i=0;i<s.length-1;i++){
+    const a=s[i],b=s[i+1];
+    tot+=rates[Math.min(a,total)]*((b-a)/12);
+    map[b]=tot;
+  }
+  return map;
+}
+function getKms(){
+  const total=+document.getElementById("period").value;
+  const s=new Set([0,total]);
+  carriers.forEach(c=>{
+    (c.increases||[]).forEach(inc=>s.add(Math.min(inc.month,total)));
+    if(c.guaranteeMonths)s.add(Math.min(c.guaranteeMonths,total));
+    for(let m=12;m<=total;m+=12)s.add(m);
+  });
+  return [...s].sort((a,b)=>a-b);
+}
+function makeSvg(series,total,mode){
+  const W=560,H=210,P={t:30,r:16,b:44,l:64};
+  const cW=W-P.l-P.r,cH=H-P.t-P.b;
+  const kms=getKms();
+  const allV=series.flatMap(s=>s.vals.slice(0,total+1));
+  const dataMin=Math.min(...allV), dataMax=Math.max(...allV);
+  const padding=(dataMax-dataMin)*0.12||dataMin*0.08||10000;
+  const minV=mode==="cost" ? dataMin-padding : Math.min(...allV,0)*1.1;
+  const maxV=dataMax+padding;
+  const rng=maxV-minV||1;
+  const xS=m=>P.l+(m/total)*cW,yS=v=>P.t+cH-((v-minV)/rng)*cH;
+  const yTicks=Array.from({length:5},(_,i)=>minV+rng*i/4);
+  const xTicks=kms.filter((_,i)=>i===0||kms[i]===total||i%Math.max(1,Math.ceil(kms.length/6))===0);
+  const dashes=["none","5,3","2,2","8,3,2,3","4,4","1,3"];
+  const lRows=[];for(let i=0;i<series.length;i+=3)lRows.push(series.slice(i,i+3));
+  const extraH=lRows.length*16;
+  let s=`<svg viewBox="0 0 ${W} ${H+extraH}" style="width:100%;height:auto;display:block">`;
+  if(mode==="savings"&&minV<0)s+=`<line x1="${P.l}" y1="${yS(0)}" x2="${W-P.r}" y2="${yS(0)}" stroke="#ddd" stroke-width="1" stroke-dasharray="3,2"/>`;
+  yTicks.forEach(v=>{
+    s+=`<line x1="${P.l}" y1="${yS(v)}" x2="${W-P.r}" y2="${yS(v)}" stroke="#efefef" stroke-width="1"/>`;
+    const lbl=mode==="cost"?`$${Math.round(v/1000)}k`:(v>=0?"+":"-")+"$"+Math.round(Math.abs(v)/1000)+"k";
+    s+=`<text x="${P.l-5}" y="${yS(v)+4}" text-anchor="end" font-size="9" fill="${GRAY}">${lbl}</text>`;
+  });
+  xTicks.forEach(m=>{
+    s+=`<line x1="${xS(m)}" y1="${P.t}" x2="${xS(m)}" y2="${H-P.b}" stroke="#f3f3f3" stroke-width="1"/>`;
+    s+=`<text x="${xS(m)}" y="${H-P.b+14}" text-anchor="middle" font-size="8" fill="${GRAY}">${mLabel(m)}</text>`;
+  });
+  series.forEach((ser,si)=>{
+    let d="";
+    for(let m=0;m<=total;m++){const x=xS(m),y=yS(ser.vals[m]);d+=m===0?`M${x},${y}`:`L${x},${y}`;}
+    s+=`<path d="${d}" fill="none" stroke="${ser.color}" stroke-width="${ser.bold?2.5:1.8}" stroke-dasharray="${dashes[si%dashes.length]}"/>`;
+    kms.forEach(m=>{
+      s+=`<circle cx="${xS(m)}" cy="${yS(ser.vals[Math.min(m,total)])}" r="${ser.bold?5:3.5}" fill="${ser.color}" stroke="white" stroke-width="1.5"/>`;
+    });
+  });
+  lRows.forEach((row,ri)=>row.forEach((ser,si)=>{
+    const lx=P.l+si*180,ly=H-P.b+22+ri*15;
+    s+=`<rect x="${lx}" y="${ly+1}" width="13" height="3" fill="${ser.color}" rx="1"/>`;
+    s+=`<text x="${lx+18}" y="${ly+8}" font-size="8.5" fill="#333">${ser.label}</text>`;
+  }));
+  return s+"</svg>";
+}
+
+function render(){
+  const total=+document.getElementById("period").value;
+  const kms=getKms();
+  const recIdx=carriers.findIndex(c=>c.id===recId);
+  const recC=carriers[Math.max(0,recIdx)];
+  const curIdx=0;
+
+  document.getElementById("recBadge").textContent=(recC.startRate>0)?"★ "+recC.name+" recommended":"";
+
+  // Update PDF header
+  const caseName = document.getElementById("caseNameInput").value || "Untitled case";
+  const sm = +document.getElementById("startMonth").value;
+  const sy = +document.getElementById("startYear").value;
+  document.getElementById("pdfHeaderTitle").textContent = caseName;
+  document.getElementById("pdfHeaderSub").textContent =
+    "Prepared " + new Date().toLocaleDateString("en-CA", {year:"numeric",month:"long",day:"numeric"}) +
+    " · " + mLabel(0) + " to " + mLabel(total) + " · " + total + " months";
+  document.getElementById("titleCaseName").textContent=document.getElementById("caseNameInput").value||"Untitled case";
+
+  const allRates=carriers.map(c=>calcRates(c,total));
+  const allCum=allRates.map(r=>calcCum(r,kms,total));
+  const recRates=allRates[Math.max(0,recIdx)];
+  const recCum=allCum[Math.max(0,recIdx)];
+
+  renderSidebar();
+  renderConfig(total);
+
+  // Cost chart
+  const costSeries=carriers.map((c,ci)=>({label:c.name,color:PALETTE[ci%PALETTE.length],vals:allRates[ci],bold:ci===recIdx}));
+  document.getElementById("costChart").outerHTML=makeSvg(costSeries,total,"cost").replace("<svg","<svg id='costChart'");
+
+  // Savings chart
+  const nonRec=carriers.filter((_,i)=>i!==recIdx&&(carriers[i].startRate||0)>0);
+  document.getElementById("savingsTitle").innerHTML=`Cumulative savings vs. <span style="color:${GREEN}">&#9733; ${recC.name}</span>`;
+  if(nonRec.length>0){
+    const savSeries=carriers.map((c,ci)=>{
+      if(ci===recIdx)return null;
+      const cum=allCum[ci];
+      const vals=Array.from({length:total+1},(_,m)=>{
+        const k=[...kms].filter(k=>k<=m).pop()||0;
+        return(cum[k]||0)-(recCum[k]||0);
+      });
+      return{label:c.name,color:PALETTE[ci%PALETTE.length],vals,bold:false};
+    }).filter(Boolean);
+    document.getElementById("savingsChart").outerHTML=makeSvg(savSeries,total,"savings").replace("<svg","<svg id='savingsChart'");
+  } else {
+    document.getElementById("savingsChart").innerHTML="";
+    document.getElementById("savingsChart").outerHTML=`<svg id="savingsChart" viewBox="0 0 400 100" style="width:100%;height:auto;display:block"><text x="200" y="55" text-anchor="middle" font-size="12" fill="#ccc">Add more carriers to compare savings</text></svg>`;
+  }
+
+  // Savings breakdown
+  const curC=carriers[curIdx];
+  const recOk=(recC?.startRate||0)>0, curOk=(curC?.startRate||0)>0;
+  const bd=document.getElementById("savingsBreakdown");
+  if(curOk&&recOk&&curIdx!==recIdx){
+    const initD=(curC.startRate-recC.startRate)*(total/12);
+    const totSav=(allCum[curIdx][total]||0)-(allCum[recIdx][total]||0);
+    const compSav=totSav-initD;
+    const curColor=PALETTE[curIdx%PALETTE.length];
+    bd.style.display="block";
+    document.getElementById("savingsBreakdownTitle").innerHTML=
+      `Savings breakdown &mdash; <span style="color:${curColor}">${curC.name}</span> vs. <span style="color:${GREEN}">&#9733; ${recC.name}</span>`;
+    document.getElementById("savingsCards").innerHTML=`
+      <div class="scard" style="background:#f7f7f7;border-left-color:${curColor}">
+        <div class="slabel">Day-one rate difference</div>
+        <div class="sval" style="color:${initD>=0?GREEN:'#D85A30'}">${fmt(Math.abs(initD))}</div>
+        <div class="ssub">${fmt(Math.abs(curC.startRate-recC.startRate))}/yr &times; ${total/12} yrs</div>
+      </div>
+      <div class="scard" style="background:#f7f7f7;border-left-color:${GL}">
+        <div class="slabel">From rate divergence over time</div>
+        <div class="sval" style="color:${compSav>=0?GREEN:'#D85A30'}">${fmt(Math.abs(compSav))}</div>
+        <div class="ssub">As ${curC.name} compounds higher</div>
+      </div>
+      <div class="scard" style="background:${totSav>=0?'#edf7f3':'#fdf0ee'};border-left-color:${totSav>=0?GREEN:'#D85A30'}">
+        <div class="slabel">Total ${total}-month savings</div>
+        <div class="sval" style="font-weight:700;color:${totSav>=0?GREEN:'#D85A30'}">${fmt(Math.abs(totSav))}</div>
+        <div class="ssub">${totSav>=0?"Favour &#9733; "+recC.name:"Favour "+curC.name}</div>
+      </div>`;
+  } else { bd.style.display="none"; }
+
+  // Milestone table
+  let thead=`<tr style="background:#1a1a1a;color:white"><th style="padding:7px 10px;text-align:left">Date</th><th style="padding:7px 6px;text-align:center">Mo.</th>`;
+  carriers.forEach((c,i)=>{
+    thead+=`<th style="padding:7px 10px;text-align:right;color:${i===recIdx?GL:PALETTE[i%PALETTE.length]}">${i===recIdx?"&#9733; ":""}${c.name}</th>`;
+  });
+  if(curIdx!==recIdx&&recOk&&curOk)thead+=`<th style="padding:7px 10px;text-align:right;color:${GL}">Cumul. savings*</th>`;
+  thead+="</tr>";
+  let tbody="";
+  kms.forEach((m,ri)=>{
+    const bg=ri%2===0?"white":"#f9f9f9";
+    let row=`<tr style="background:${bg}"><td style="padding:5px 10px;color:#444">${mLabel(m)}</td><td style="padding:5px 6px;text-align:center;color:${GRAY}">${m}</td>`;
+    carriers.forEach((c,ci)=>{
+      const v=(c.startRate||0)>0?fmt(allRates[ci][Math.min(m,total)]):"&mdash;";
+      row+=`<td style="padding:5px 10px;text-align:right;font-weight:500;color:${ci===recIdx?GREEN:PALETTE[ci%PALETTE.length]}">${v}</td>`;
+    });
+    if(curIdx!==recIdx&&recOk&&curOk){
+      const sav=(allCum[curIdx][m]||0)-(allCum[recIdx][m]||0);
+      row+=`<td style="padding:5px 10px;text-align:right;font-weight:600;color:${sav>=0?GREEN:'#D85A30'}">${fmt(sav)}</td>`;
+    }
+    tbody+=row+"</tr>";
+  });
+  document.getElementById("milestoneTable").innerHTML=`<thead>${thead}</thead><tbody>${tbody}</tbody>`;
+  document.getElementById("milestoneNote").textContent=
+    curIdx!==recIdx&&recOk&&curOk?`* Total paid to ${curC.name} minus total paid to \u2605 ${recC.name} from start through each date`:"";
+}
+
+function renderSidebar(){
+  const list=document.getElementById("sidebarList");
+  list.innerHTML="";
+  carriers.forEach((c,ci)=>{
+    const isSel=c.id===selId,isRec=c.id===recId,isEdit=c.id===editId;
+    const color=PALETTE[ci%PALETTE.length];
+    const row=document.createElement("div");
+    row.className="srow"+(isSel?" active":"");
+    if(isSel){row.style.border=`1.5px solid ${color}`;}
+    row.onclick=()=>{selId=c.id;editId=null;renderSidebar();renderConfig(+document.getElementById("period").value);};
+    const dot=document.createElement("div");dot.className="dot";dot.style.background=color;row.appendChild(dot);
+    if(isRec&&!isEdit){const st=document.createElement("span");st.className="star-icon";st.style.color=color;st.textContent="★";row.appendChild(st);}
+    const inp=document.createElement("input");
+    inp.className="name-inp"+(isEdit?" editing":"");
+    inp.value=c.name;inp.readOnly=!isEdit;
+    inp.style.fontWeight=isSel?"600":"400";inp.style.color=isSel?color:"#444";inp.style.cursor=isEdit?"text":"pointer";
+    inp.oninput=e=>{c.name=e.target.value;};
+    inp.onblur=()=>{editId=null;render();};
+    inp.onkeydown=e=>{if(e.key==="Enter"){editId=null;inp.blur();}e.stopPropagation();};
+    inp.onclick=e=>{if(isEdit)e.stopPropagation();};
+    row.appendChild(inp);
+    if(isSel){
+      const pen=document.createElement("button");pen.className="icon-btn";pen.title="Rename";pen.textContent="✎";
+      pen.style.color=isEdit?color:"#bbb";
+      pen.onclick=e=>{e.stopPropagation();selId=c.id;editId=c.id;renderSidebar();setTimeout(()=>{inp.focus();inp.select();},10);};
+      row.appendChild(pen);
+      if(carriers.length>1){
+        const rm=document.createElement("button");rm.className="icon-btn";rm.title="Remove";rm.textContent="×";rm.style.fontSize="14px";
+        rm.onclick=e=>{e.stopPropagation();removeCarrier(c.id);};
+        row.appendChild(rm);
+      }
+    }
+    list.appendChild(row);
+    if(isEdit)setTimeout(()=>{inp.focus();inp.select();},10);
+  });
+}
+
+function renderConfig(total){
+  const ci=carriers.findIndex(c=>c.id===selId);
+  if(ci<0)return;
+  const c=carriers[ci];
+  const color=PALETTE[ci%PALETTE.length];
+  const isRec=c.id===recId, isEdit=c.id===editId;
+  const panel=document.getElementById("configPanel");
+  panel.style.borderColor=color;
+  panel.innerHTML=`
+    <div class="config-top">
+      <div class="config-name-row">
+        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <input id="cfgName" class="config-name-inp${isEdit?" editing":""}" value="${c.name}" style="color:${color}" ${isEdit?"":"readonly"}>
+        <span class="pencil" id="cfgPen">✎</span>
+      </div>
+      <button class="rec-btn${isRec?" active":""}" id="recBtn">${isRec?"&#9733; Recommended":"&#9734; Set as recommended"}</button>
+    </div>
+    <div class="fields">
+      <div class="field"><label>Starting annual premium</label>
+        <div class="field-row"><span class="pfx">$</span><input type="number" id="f_startRate" value="${c.startRate||""}"></div></div>
+      <div class="field"><label>Annual renewal increase</label>
+        <div class="field-row"><input type="number" id="f_annualIncrease" value="${c.annualIncrease||""}"><span class="sfx">%</span></div></div>
+      <div class="field"><label>Rate guarantee (months)</label>
+        <div class="field-row"><input type="number" id="f_guaranteeMonths" value="${c.guaranteeMonths||""}"></div></div>
+      <div class="field"><label>Renewal cap</label>
+        <div class="field-row"><input type="number" id="f_cap" value="${c.cap||""}" placeholder="No cap"><span class="sfx">%</span></div></div>
+    </div>
+    <div class="incs-top"><label>One-time rate changes</label>
+      <button class="inc-add-btn" id="incAdd" style="color:${color};border:1px solid ${color}">+ Add</button></div>
+    <div id="incList">
+      ${(c.increases||[]).length===0?`<p style="font-size:11px;color:#ccc;margin-top:4px">No one-time increases &mdash; add one above</p>`:""}
+      ${(c.increases||[]).map((inc,ii)=>`
+        <div class="inc-row">
+          <label>At month</label>
+          <input type="number" style="width:52px" value="${inc.month}" onchange="updInc(${ii},'month',+this.value)">
+          <label>increase</label>
+          <div class="field-row" style="flex:0">
+            <input type="number" style="width:46px;border:none;padding:3px 6px;font-size:12px;outline:none" value="${inc.pct}" onchange="updInc(${ii},'pct',+this.value)">
+            <span class="sfx">%</span></div>
+          <button class="inc-rm" onclick="remInc(${ii})">&#215;</button>
+        </div>`).join("")}
+    </div>`;
+
+  const cfgName=document.getElementById("cfgName");
+  document.getElementById("cfgPen").onclick=()=>{editId=c.id;cfgName.removeAttribute("readonly");cfgName.classList.add("editing");cfgName.focus();cfgName.select();};
+  cfgName.onclick=()=>{if(!isEdit){editId=c.id;cfgName.removeAttribute("readonly");cfgName.classList.add("editing");cfgName.focus();cfgName.select();}};
+  cfgName.oninput=e=>{c.name=e.target.value;const si=document.querySelector(".srow.active .name-inp");if(si)si.value=e.target.value;};
+  cfgName.onblur=()=>{editId=null;render();};
+  cfgName.onkeydown=e=>{if(e.key==="Enter")cfgName.blur();};
+  document.getElementById("recBtn").onclick=()=>{recId=c.id;render();};
+  document.getElementById("incAdd").onclick=()=>{c.increases=[...(c.increases||[]),{month:12,pct:10}];render();};
+  ["startRate","annualIncrease","guaranteeMonths","cap"].forEach(k=>{
+    const el=document.getElementById("f_"+k);
+    if(el)el.onchange=e=>{c[k]=+e.target.value;render();};
+  });
+}
+
+function updInc(ii,key,val){const c=carriers.find(x=>x.id===selId);if(c)c.increases[ii][key]=val;render();}
+function remInc(ii){const c=carriers.find(x=>x.id===selId);if(c)c.increases=c.increases.filter((_,j)=>j!==ii);render();}
+function addCarrier(){
+  const nc={id:nextId++,name:"Carrier "+(carriers.length+1),startRate:0,annualIncrease:0,guaranteeMonths:0,cap:0,increases:[]};
+  carriers.push(nc);selId=nc.id;editId=nc.id;render();
+}
+function removeCarrier(id){
+  if(carriers.length<=1)return;
+  const idx=carriers.findIndex(c=>c.id===id);
+  carriers=carriers.filter(c=>c.id!==id);
+  if(recId===id)recId=carriers[0].id;
+  selId=carriers[Math.min(idx,carriers.length-1)].id;
+  render();
+}
+
+// Settings listeners
+document.getElementById("startMonth").onchange=render;
+document.getElementById("startYear").onchange=render;
+document.getElementById("period").onchange=render;
+document.getElementById("caseNameInput").oninput=()=>{document.getElementById("titleCaseName").textContent=document.getElementById("caseNameInput").value;};
+
+// Case management
+function getPayload(){
+  return {
+    caseName: document.getElementById("caseNameInput").value||"Untitled case",
+    startMonth: +document.getElementById("startMonth").value,
+    startYear: +document.getElementById("startYear").value,
+    totalMonths: +document.getElementById("period").value,
+    carriers, selId, recId, nextId
+  };
+}
+function applyPayload(p){
+  document.getElementById("caseNameInput").value=p.caseName||"Untitled case";
+  document.getElementById("startMonth").value=p.startMonth||7;
+  document.getElementById("startYear").value=p.startYear||2026;
+  document.getElementById("period").value=p.totalMonths||48;
+  carriers=p.carriers||carriers;
+  selId=p.selId||carriers[0].id;
+  recId=p.recId||carriers[0].id;
+  nextId=p.nextId||nextId;
+}
+
+async function saveCase(){
+  if(currentFilename){
+    await window.api.overwriteCase(currentFilename,getPayload());
+    loadCasesList();
+  } else { saveCaseAs(); }
+}
+
+function saveCaseAs(){
+  openModal("Save case","Enter a name for this case.",document.getElementById("caseNameInput").value||"Untitled case",async(name)=>{
+    document.getElementById("caseNameInput").value=name;
+    const payload=getPayload();payload.caseName=name;
+    currentFilename=await window.api.saveCase(payload);
+    loadCasesList();
+  });
+}
+
+function newCase(){
+  currentFilename=null;
+  carriers=[
+    {id:1,name:"Current Carrier",startRate:0,annualIncrease:0,guaranteeMonths:0,cap:0,increases:[]},
+    {id:2,name:"Proposed Carrier",startRate:0,annualIncrease:0,guaranteeMonths:0,cap:0,increases:[]}
+  ];
+  nextId=3;selId=1;recId=2;editId=null;
+  document.getElementById("caseNameInput").value="Untitled case";
+  document.getElementById("startMonth").value=new Date().getMonth()+1;
+  document.getElementById("startYear").value=new Date().getFullYear();
+  document.getElementById("period").value=48;
+  document.querySelectorAll(".case-item").forEach(el=>el.classList.remove("active"));
+  render();
+}
+
+async function loadCasesList(){
+  const cases=await window.api.listCases();
+  const list=document.getElementById("casesList");
+  if(!cases.length){list.innerHTML='<div id="noSaved">No saved cases yet</div>';return;}
+  list.innerHTML=cases.map(c=>{
+    const d=new Date(c.updatedAt);
+    const dateStr=d.toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"});
+    return `<div class="case-item${currentFilename===c.filename?" active":""}" onclick="loadCase('${c.filename}')">
+      <button class="ci-del" onclick="event.stopPropagation();deleteCase('${c.filename}')">&#215;</button>
+      <div class="ci-name">${c.name}</div>
+      <div class="ci-date">${dateStr}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loadCase(filename){
+  const data=await window.api.loadCase(filename);
+  currentFilename=filename;
+  applyPayload(data);
+  document.querySelectorAll(".case-item").forEach(el=>el.classList.toggle("active",el.getAttribute("onclick").includes(filename)));
+  render();
+}
+
+async function deleteCase(filename){
+  if(!confirm("Delete this saved case?"))return;
+  await window.api.deleteCase(filename);
+  if(currentFilename===filename)currentFilename=null;
+  loadCasesList();
+}
+
+async function exportPdf(){
+  const name=document.getElementById("caseNameInput").value||"Premium Comparison";
+  await window.api.exportPdf(name);
+}
+
+// Modal
+let _modalCallback=null;
+function openModal(title,desc,defaultVal,callback){
+  document.getElementById("modalTitle").textContent=title;
+  document.getElementById("modalDesc").textContent=desc;
+  document.getElementById("modalInput").value=defaultVal||"";
+  _modalCallback=callback;
+  document.getElementById("modal").classList.add("open");
+  setTimeout(()=>{document.getElementById("modalInput").focus();document.getElementById("modalInput").select();},50);
+  document.getElementById("modalConfirm").onclick=()=>{
+    const val=document.getElementById("modalInput").value.trim();
+    if(!val)return;
+    closeModal();
+    _modalCallback(val);
+  };
+  document.getElementById("modalInput").onkeydown=e=>{if(e.key==="Enter")document.getElementById("modalConfirm").click();};
+}
+function closeModal(){document.getElementById("modal").classList.remove("open");}
+document.getElementById("modal").onclick=e=>{if(e.target===document.getElementById("modal"))closeModal();};
+
+// Init
+loadCasesList();
+render();
+</script>
+</body>
+</html>

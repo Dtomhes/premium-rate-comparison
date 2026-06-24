@@ -1,0 +1,25 @@
+{
+  "name": "premium-rate-comparison",
+  "version": "1.0.0",
+  "description": "Premium Rate Comparison Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.sterlingcapital.premiumcomparison",
+    "productName": "Premium Rate Comparison",
+    "win": {
+      "target": "portable",
+      "icon": "icon.ico"
+    },
+    "portable": {
+      "artifactName": "PremiumRateComparison.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
