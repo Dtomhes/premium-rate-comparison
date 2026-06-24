@@ -1,4 +1,4 @@
-yamlname: Build Windows App
+ Build Windows App
 
 on:
   push:
